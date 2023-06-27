@@ -1,1 +1,1 @@
-Exploratory data analysis of the Volve field's Daialy Production Data.
+Exploratory data analysis of the Volve field's Daily Production Data.
