@@ -1,5 +1,13 @@
 # Volve-field
-Applying Big Data and associated technologies with **Volve** dataset.
+
+### Description
+This repository is an attempt to apply Big Data and associated technologies with the **Volve** data set.
+
+---
+
+### ⚙ Open Source Products
+
+- [FIPRAN](https://fipran.streamlit.app/): A web application for real-time monitoring of oil and gas production
 
 ## 🎓 Acknowledgements
 - Equinor ASA
