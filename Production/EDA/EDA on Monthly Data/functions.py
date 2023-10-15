@@ -32,7 +32,7 @@ def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def annual_data(
+def get_annual_data(
     data: pd.DataFrame, category: Optional[Literal["production", "injection"]] = None
 ) -> pd.DataFrame:
     df = data.groupby("YEAR", as_index=False)[
@@ -56,7 +56,7 @@ def annual_data(
     return df
 
 
-def monthly_data(
+def get_monthly_data(
     data: pd.DataFrame,
     parameter: Optional[Literal["ON_STREAM", "OIL", "GAS", "WATER", "GI", "WI"]] = None,
 ) -> pd.DataFrame:
@@ -98,19 +98,19 @@ def wellbores_data(
     return df
 
 
-def well_data(data: pd.DataFrame, well_name: str) -> pd.DataFrame:
+def get_well_data(data: pd.DataFrame, well_name: str) -> pd.DataFrame:
     well_name = well_name.strip().upper()
     df = data.query("`WELLBORE_NAME` == @well_name").reset_index(drop=True)
 
     return df
 
 
-def well_annual_data(
+def get_well_annual_data(
     data: pd.DataFrame,
     well_name: str,
     category: Optional[Literal["production", "injection"]] = None,
 ) -> pd.DataFrame:
-    df = well_data(data=data, well_name=well_name)
+    df = get_well_data(data=data, well_name=well_name)
     df = df.groupby("YEAR", as_index=False)[
         ["ON_STREAM", "OIL", "GAS", "WATER", "GI", "WI"]
     ].sum()
@@ -132,12 +132,12 @@ def well_annual_data(
 
 
 # If the argument 'parameter' is not provided, the df returned would be the same as the one returned by the function 'well_data'
-def well_monthly_data(
+def get_well_monthly_data(
     data: pd.DataFrame,
     well_name: str,
     parameter: Optional[Literal["ON_STREAM", "OIL", "GAS", "WATER", "GI", "WI"]] = None,
 ) -> pd.DataFrame:
-    df = well_data(data=data, well_name=well_name)
+    df = get_well_data(data=data, well_name=well_name)
 
     if not parameter:
         return df
@@ -148,23 +148,68 @@ def well_monthly_data(
     return df
 
 
+def determine_well_type(data: pd.DataFrame, well_name: str) -> str:
+    well_df = get_well_data(data, well_name)
+
+    if sum(well_df["OIL"] + well_df["GAS"]) > 0:
+        if sum(well_df["GI"] + well_df["WI"]) > 0:
+            return "HYBRID"
+        else:
+            return "PRODUCTION"
+    else:
+        return "INJECTION"
+
+
+def wellbores_details(data: pd.DataFrame) -> pd.DataFrame:
+    details_dict = {
+        "WELLBORE_NAME": [],
+        "WELLBORE_TYPE": [],
+        "FIRST_RECORD": [],
+        "LAST_RECORD": [],
+    }
+
+    for wellbore in data["WELLBORE_NAME"].unique():
+        well_df = get_well_data(data, wellbore)
+        details_dict["WELLBORE_NAME"].append(wellbore)
+        details_dict["WELLBORE_TYPE"].append(determine_well_type(data, wellbore))
+        details_dict["FIRST_RECORD"].append(well_df["YEAR"].min())
+        details_dict["LAST_RECORD"].append(well_df["YEAR"].max())
+
+    return pd.DataFrame(details_dict).sort_values("FIRST_RECORD").reset_index(drop=True)
+
+
+def annual_data(
+    data: pd.DataFrame,
+    well_name: Optional[str] = None,
+    category: Optional[Literal["production", "injection"]] = None,
+) -> pd.DataFrame:
+    if well_name:
+        return get_well_annual_data(data, well_name, category)
+    else:
+        return get_annual_data(data, category)
+
+
+def monthly_data(
+    data: pd.DataFrame,
+    well_name: Optional[str] = None,
+    parameter: Optional[Literal["ON_STREAM", "OIL", "GAS", "WATER", "GI", "WI"]] = None,
+) -> pd.DataFrame:
+    if well_name:
+        return get_well_monthly_data(data, well_name, parameter)
+    else:
+        return get_monthly_data(data, parameter)
+
+
 def generate_annual_dataframes(
     data: pd.DataFrame, well_name: Optional[str] = None
 ) -> Dict[str, pd.DataFrame]:
     dataframes_collection = {}
 
-    dataframes_collection["all"] = (
-        annual_data(data) if well_name is None else well_annual_data(data, well_name)
+    dataframes_collection["PRODUCTION"] = annual_data(
+        data, well_name, category="production"
     )
-    dataframes_collection["production"] = (
-        annual_data(data, "production")
-        if well_name is None
-        else well_annual_data(data, well_name, "production")
-    )
-    dataframes_collection["injection"] = (
-        annual_data(data, "injection")
-        if well_name is None
-        else well_annual_data(data, well_name, "injection")
+    dataframes_collection["INJECTION"] = annual_data(
+        data, well_name, category="injection"
     )
 
     return dataframes_collection
@@ -174,46 +219,19 @@ def generate_monthly_dataframes(
     data: pd.DataFrame, well_name: Optional[str] = None
 ) -> Dict[str, pd.DataFrame]:
     dataframes_collection = {}
+    parameters = ["ON_STREAM", "OIL", "GAS", "WATER", "GI", "WI"]
 
-    dataframes_collection["ON_STREAM"] = (
-        monthly_data(data, "ON_STREAM")
-        if well_name is None
-        else well_monthly_data(data, well_name, "ON_STREAM")
-    )
-    dataframes_collection["OIL"] = (
-        monthly_data(data, "OIL")
-        if well_name is None
-        else well_monthly_data(data, well_name, "OIL")
-    )
-    dataframes_collection["GAS"] = (
-        monthly_data(data, "GAS")
-        if well_name is None
-        else well_monthly_data(data, well_name, "GAS")
-    )
-    dataframes_collection["WATER"] = (
-        monthly_data(data, "WATER")
-        if well_name is None
-        else well_monthly_data(data, well_name, "WATER")
-    )
-    dataframes_collection["GI"] = (
-        monthly_data(data, "GI")
-        if well_name is None
-        else well_monthly_data(data, well_name, "GI")
-    )
-    dataframes_collection["WI"] = (
-        monthly_data(data, "WI")
-        if well_name is None
-        else well_monthly_data(data, well_name, "WI")
-    )
+    for parameter in parameters:
+        dataframes_collection[parameter] = monthly_data(data, well_name, parameter)
 
     return dataframes_collection
 
 
 def generate_wellbores_dataframes(data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     dataframes_collection = {}
+    categories = ["PRODUCTION", "INJECTION", "HYBRID"]
 
-    dataframes_collection["all"] = wellbores_data(data, category="all")
-    dataframes_collection["production"] = wellbores_data(data, category="production")
-    dataframes_collection["injection"] = wellbores_data(data, category="injection")
+    for category in categories:
+        dataframes_collection[category] = wellbores_data(data, category)
 
     return dataframes_collection
