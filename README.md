@@ -7,7 +7,7 @@ This repository is an attempt to apply Big Data and associated technologies with
 
 ### ⚙ Open Source Products
 
-- [FIPRAN](https://fipran.streamlit.app/): A web application for real-time monitoring of oil and gas production
+- [FIPRAN](https://fipran.streamlit.app/): A web application for monitoring and analyzing oil and gas production
 
 ## 🎓 Acknowledgements
 - Equinor ASA
