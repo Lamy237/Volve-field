@@ -131,7 +131,7 @@ def get_well_annual_data(
     return df
 
 
-# If the argument 'parameter' is not provided, the df returned would be the same as the one returned by the function 'well_data'
+# If the argument 'parameter' is not provided, the df returned would be the same as the one returned by the function 'get_well_data'
 def get_well_monthly_data(
     data: pd.DataFrame,
     well_name: str,
